@@ -4,29 +4,36 @@ from typing import Tuple
 
 import pandas as pd
 
-from path.path_reference import get_datasets_folder_path
+from source.datasets.dataset_utils import flatten_and_concat_dict
+from source.paths.path_reference import get_crude_datasets_folder_path, get_datasets_folder_path
 
 
 def load_qasper_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
-    qasper_folder_path = get_datasets_folder_path() / 'qasper/'
-    dev_file_path = qasper_folder_path / 'qasper_dev_normalized.csv'
-    train_file_path = qasper_folder_path / 'qasper_train_normalized.csv'
-    dev_df = pd.read_csv(dev_file_path)
-    train_df = pd.read_csv(train_file_path)
+    qasper_folder_path = get_crude_datasets_folder_path()
+    dev_file_path = qasper_folder_path / 'qasper_dev.json'
+    train_file_path = qasper_folder_path / 'qasper_train.json'
+    with open(dev_file_path, 'r') as f:
+        dev_data = list(json.load(f).values())
+    with open(train_file_path, 'r') as f:
+        train_data = list(json.load(f).values())
+    dev_dicts = [flatten_and_concat_dict(item) for item in dev_data]
+    train_dicts = [flatten_and_concat_dict(item) for item in train_data]
+    dev_df = pd.DataFrame(dev_dicts)
+    train_df = pd.DataFrame(train_dicts)
     return dev_df, train_df
 
 
 def load_narrative_qa_dataset() -> pd.DataFrame:
-    narrative_qa_folder_path = get_datasets_folder_path() / 'narrativeQA/'
-    narrative_qa_path = narrative_qa_folder_path / 'qaps.csv'
+    narrative_qa_folder_path = get_crude_datasets_folder_path()
+    narrative_qa_path = narrative_qa_folder_path / 'narrative_qa.csv'
     return pd.read_csv(narrative_qa_path)
 
 
 def load_quality_dataset() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    quality_folder_path = get_datasets_folder_path() / 'quality/'
-    dev_file_path = quality_folder_path / 'QuALITY.v1.0.1.htmlstripped.dev'
-    test_file_path = quality_folder_path / 'QuALITY.v1.0.1.htmlstripped.test'
-    train_file_path = quality_folder_path / 'QuALITY.v1.0.1.htmlstripped.train'
+    quality_folder_path = get_crude_datasets_folder_path()
+    dev_file_path = quality_folder_path / 'quality.dev'
+    test_file_path = quality_folder_path / 'quality.test'
+    train_file_path = quality_folder_path / 'quality.train'
 
     def load_and_parse_file(file_path):
         data = []
@@ -53,7 +60,7 @@ def save_to_csv(chunk_percentage: float = 0.1):
                "quality_dev": quality_dev, "quality_test": quality_test, "quality_train": quality_train}
     for label, df in df_pool.items():
         sampled_df = df.sample(frac=chunk_percentage, random_state=1)
-        csv_path = get_datasets_folder_path() / f"csvs/{label}.csv"
+        csv_path = get_datasets_folder_path() / f"small_data/{label}.csv"
         sampled_df.to_csv(csv_path, index=False)
     return
 
