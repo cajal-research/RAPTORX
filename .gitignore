@@ -1,0 +1,5 @@
+/project_utils/commit_changes_generator/commit_changes.diff
+/project_utils/github_analysis/*.yaml
+/project_utils/github_analysis/*.csv
+/project_utils/project_structure_generator/*.json
+/project_utils/unused_imports_generator/*.json
