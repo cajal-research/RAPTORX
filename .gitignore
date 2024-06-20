@@ -4,3 +4,4 @@
 /project_utils/project_structure_generator/*.json
 /project_utils/unused_imports_generator/*.json
 .idea
+/source/datasets/normalized_data/*.csv

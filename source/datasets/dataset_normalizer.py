@@ -72,7 +72,9 @@ def qasper_normalizer():
                         answer_text = " ".join(answer_dict["answer"]["highlighted_evidence"])
                         entry["context"] += context
                         entry["answer"] += answer_text
-                standardized_data.append(entry)
+                invalid_entry = any([entry["question"] == "", entry["answer"] == "", entry["context"] == ""])
+                if not invalid_entry:
+                    standardized_data.append(entry)
 
     with input_path_dev.open('r', encoding='utf-8') as file:
         data_dev = json.load(file)
