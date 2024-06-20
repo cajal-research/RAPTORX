@@ -2,6 +2,7 @@ import pickle
 
 from source.models.tree_structures import Node
 from source.paths.path_reference import get_tree_pkl_path
+from source.tree_visualization.visualize_core import visualize_tree_structure
 
 
 def load_tree(path):
@@ -25,3 +26,11 @@ def visualize_tree_graph():
     )
 
     visualize_tree_structure(root_node, tree)
+
+
+def main():
+    visualize_tree_graph()
+
+
+if __name__ == '__main__':
+    main()
