@@ -1,5 +1,30 @@
-/project_utils/commit_changes_generator/commit_changes.diff
-/project_utils/github_analysis/*.yaml
-/project_utils/github_analysis/*.csv
-/project_utils/project_structure_generator/*.json
-/project_utils/unused_imports_generator/*.json
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Config files
+*.ini
+*.toml
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Environment variables file
+.env
+
+# Cython
+*.c
+*.so
+*.pyd
+
+# macOS specific
+.DS_Store
