@@ -16,6 +16,9 @@ def get_crude_datasets_folder_path():
 def get_normalized_datasets_folder_path():
     return Path(get_root_folder_path(), 'datasets/normalized_data')
 
+def get_tree_pkl_path():
+    return Path(get_root_folder_path(), 'models/tree.pkl')
+
 
 def main():
     root_folder = get_root_folder_path()
