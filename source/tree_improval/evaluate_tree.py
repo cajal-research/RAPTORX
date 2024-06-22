@@ -1,23 +1,10 @@
-from tree_structures import Tree
 import pandas as pd
 from retriever import retrieve
 from typing import List
 from tqdm import tqdm
 
-
-def get_path_to_leaf(tree: Tree, leaf_node_index: str) -> List[int]:
-    layers = tree.layer_to_nodes
-    current_node = leaf_node_index
-    path = list([current_node])
-    for idx, layer in layers.items():
-        if idx == 0:
-            continue
-        for node in layer:
-            if current_node in node.children:
-                current_node = node.index
-                path.append(current_node)
-                break
-    return path[::-1]
+from source.models.tree_structures import Tree
+from source.tree_improval.utils import get_path_to_leaf
 
 
 def evaluate_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
