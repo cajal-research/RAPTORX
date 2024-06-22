@@ -4,30 +4,26 @@ from retriever import retrieve
 from typing import List
 from tqdm import tqdm
 from source.models.tree_structures import Tree
-from source.tree_improval.utils import get_path_to_leaf
+from source.tree_improval.utils import get_path_to_leaf, shuffle_and_prepare, get_correct_paths, \
+    retrieve_path_and_embedding
 
 LEARNING_RATE = 0.02
 
 
 def improve_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
-    shuffled_dataset = dataset.sample(frac=1).reset_index(drop=True)
-    leaf_nodes = tree.leaf_nodes.keys()
-    correct_path_dict = {leaf: get_path_to_leaf(tree, leaf) for leaf in leaf_nodes}
-    questions = shuffled_dataset['question'].values.tolist()
-    items = shuffled_dataset['node'].values.tolist()
-
+    shuffled_dataset, questions, items = shuffle_and_prepare(dataset)
+    correct_path_dict = get_correct_paths(tree)
     new_tree = tree
     all_nodes = tree.all_nodes
 
     for question, item in tqdm(zip(questions, items), total=len(questions), desc="Improving tree"):
-        path, query_embedding = retrieve(question, tree)
+        path, query_embedding = retrieve_path_and_embedding(question, tree)
         correct_path = correct_path_dict[item]
 
         if item != path[-1].index:
             for i in range(len(path)):
                 if correct_path[i] != path[i].index:
-                    # Now update the tree from where the path diverged
-                    # Enforce the correct path
+                    # Update the tree from where the path diverged
                     vector = np.array(all_nodes[correct_path[i]].embeddings['OpenAI'])
                     new_embedding_1 = vector + LEARNING_RATE * (np.array(query_embedding) - vector)
                     new_tree = update_tree(new_tree, new_embedding_1, correct_path[i])
@@ -36,6 +32,7 @@ def improve_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
                                 np.array(query_embedding) - path[i].embeddings['OpenAI'])
                     new_tree = update_tree(new_tree, new_embedding_2, path[i].index)
                     break
+
     return new_tree
 
 

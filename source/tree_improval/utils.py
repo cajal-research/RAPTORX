@@ -1,5 +1,5 @@
 from typing import Tuple, Dict, List
-
+from retriever import retrieve
 import pandas as pd
 
 from source.models.tree_structures import Tree

@@ -4,32 +4,20 @@ from typing import List
 from tqdm import tqdm
 
 from source.models.tree_structures import Tree
-from source.tree_improval.utils import get_path_to_leaf
+from source.tree_improval.utils import get_path_to_leaf, shuffle_and_prepare, get_correct_paths, \
+    retrieve_path_and_embedding, create_result_entry
 
 
 def evaluate_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
-    shuffled_dataset = dataset.sample(frac=1).reset_index(drop=True)
-    leaf_nodes = tree.leaf_nodes.keys()
-    correct_path_dict = {leaf: get_path_to_leaf(tree, leaf) for leaf in leaf_nodes}
-
-    questions = shuffled_dataset['question'].values.tolist()
-    items = shuffled_dataset['node'].values.tolist()
+    shuffled_dataset, questions, items = shuffle_and_prepare(dataset)
+    correct_path_dict = get_correct_paths(tree)
 
     results = []
 
     for question, item in tqdm(zip(questions, items), total=len(questions), desc="Evaluating"):
-        path, question_embedding = retrieve(question, tree)
-        path_indexes = [node.index for node in path]
+        path, question_embedding = retrieve_path_and_embedding(question, tree)
         correct_path = correct_path_dict[item]
-        correct = (item == path[-1].index)
-
-        result = {
-            'question': question,
-            'question_embedding': question_embedding,
-            'retrieved_path': path_indexes,
-            'correct_path': correct_path,
-            'is_correct': correct
-        }
+        result = create_result_entry(question, question_embedding, path, correct_path, item)
         results.append(result)
 
     results_df = pd.DataFrame(results)
