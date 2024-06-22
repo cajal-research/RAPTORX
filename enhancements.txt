@@ -1,0 +1,18 @@
+
+Improve dataset generation:
+    - Use gpt to generate different questions using a single prompt. 
+    - Extract questions from random parts of the text. Combine chunks to extract questions, etc
+    - etc 
+
+Tree improval algorithm:
+    - Explicit:
+        - Set of questions that led the system to diverge.
+        - We cluster the questions. Then, we extract a summary for each cluster.
+        - We merge all the summaries with the node summary where divergence was detected.
+        - We compute the new embedding and update the tree. 
+        - Make sure that there will be no divergence in child nodes down until the right leaf node.
+    - Implicit:
+        - Improve existing algorithm.
+        - Use clustering. 
+        - Propagate changes.
+        - Tune hyperparameters.
