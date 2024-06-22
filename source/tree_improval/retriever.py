@@ -1,7 +1,8 @@
 from openai import OpenAI
 import numpy as np
-from tree_structures import Tree, Node
 from typing import List, Dict, Tuple
+
+from raptor.tree_structures import Node, Tree
 
 
 def embed(query: str) -> List[float]:

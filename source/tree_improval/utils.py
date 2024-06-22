@@ -1,8 +1,8 @@
 from typing import Tuple, Dict, List
+
+from raptor.tree_structures import Tree
 from retriever import retrieve
 import pandas as pd
-
-from source.models.tree_structures import Tree
 
 
 def get_path_to_leaf(tree: Tree, leaf_node_index: str) -> List[int]:
