@@ -4,6 +4,7 @@ from retriever import retrieve
 from typing import List
 from tqdm import tqdm
 
+
 def get_path_to_leaf(tree: Tree, leaf_node_index: str) -> List[int]:
     layers = tree.layer_to_nodes
     current_node = leaf_node_index
@@ -18,6 +19,7 @@ def get_path_to_leaf(tree: Tree, leaf_node_index: str) -> List[int]:
                 break
     return path[::-1]
 
+
 def evaluate_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
     shuffled_dataset = dataset.sample(frac=1).reset_index(drop=True)
     leaf_nodes = tree.leaf_nodes.keys()
@@ -30,7 +32,7 @@ def evaluate_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
 
     for question, item in tqdm(zip(questions, items), total=len(questions), desc="Evaluating"):
         path, question_embedding = retrieve(question, tree)
-        path_indexes = [node.index for node in path]    
+        path_indexes = [node.index for node in path]
         correct_path = correct_path_dict[item]
         correct = (item == path[-1].index)
 
@@ -42,7 +44,7 @@ def evaluate_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
             'is_correct': correct
         }
         results.append(result)
-        
+
     results_df = pd.DataFrame(results)
     accuracy = results_df['is_correct'].mean()
     print('Done!')

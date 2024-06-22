@@ -6,6 +6,7 @@ https://github.com/parthsarthi03/raptor
 
 from typing import Set
 
+
 class Node:
     """
     Represents a node in the hierarchical tree structure.
@@ -24,7 +25,7 @@ class Tree:
     """
 
     def __init__(
-        self, all_nodes, root_nodes, leaf_nodes, num_layers, layer_to_nodes
+            self, all_nodes, root_nodes, leaf_nodes, num_layers, layer_to_nodes
     ) -> None:
         self.all_nodes = all_nodes
         self.root_nodes = root_nodes

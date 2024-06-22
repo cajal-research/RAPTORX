@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 LEARNING_RATE = 0.02
 
+
 def get_path_to_leaf(tree: Tree, leaf_node_index: str) -> List[int]:
     layers = tree.layer_to_nodes
     current_node = leaf_node_index
@@ -21,6 +22,7 @@ def get_path_to_leaf(tree: Tree, leaf_node_index: str) -> List[int]:
                 break
     return path[::-1]
 
+
 def improve_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
     new_tree = tree
     all_nodes = tree.all_nodes
@@ -33,7 +35,7 @@ def improve_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
     for question, item in tqdm(zip(questions, items), total=len(questions), desc="Improving tree"):
         path, query_embedding = retrieve(question, tree)
         correct_path = correct_path_dict[item]
-        
+
         if item != path[-1].index:
             for i in range(len(path)):
                 if correct_path[i] != path[i].index:
@@ -43,10 +45,12 @@ def improve_tree(tree: Tree, dataset: pd.DataFrame) -> pd.DataFrame:
                     new_embedding_1 = vector + LEARNING_RATE * (np.array(query_embedding) - vector)
                     new_tree = update_tree(new_tree, new_embedding_1, correct_path[i])
                     # Penalize the wrong path
-                    new_embedding_2 = np.array(path[i].embeddings['OpenAI']) - LEARNING_RATE * (np.array(query_embedding) - path[i].embeddings['OpenAI'])
+                    new_embedding_2 = np.array(path[i].embeddings['OpenAI']) - LEARNING_RATE * (
+                                np.array(query_embedding) - path[i].embeddings['OpenAI'])
                     new_tree = update_tree(new_tree, new_embedding_2, path[i].index)
                     break
     return new_tree
+
 
 def update_tree(tree: Tree, new_embedding: List[float], index: int) -> Tree:
     tree.all_nodes[index].embeddings['OpenAI'] = new_embedding
@@ -59,4 +63,3 @@ def update_tree(tree: Tree, new_embedding: List[float], index: int) -> Tree:
     if index in tree.root_nodes.keys():
         tree.root_nodes[index].embeddings['OpenAI'] = new_embedding
     return tree
-    
