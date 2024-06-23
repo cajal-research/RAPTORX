@@ -32,6 +32,7 @@ def get_syn_dataset_path():
 def get_cinderella_folder_path():
     return Path(get_data_folder_path(), 'cinderella')
 
+
 def get_cinderella_story_path():
     return Path(get_data_folder_path(), 'cinderella/cinderella_story.txt')
 

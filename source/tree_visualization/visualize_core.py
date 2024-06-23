@@ -3,6 +3,8 @@
     See more : https://plotly.com/python/tree-plots/
     Usage : visualize_tree_structure(start_node : Node, tree : Tree)
 """
+from typing import Tuple
+
 from source.raptor.tree_structures import Node, Tree
 
 try:
@@ -35,50 +37,6 @@ FIGURE_MARGIN_RIGHT = 40
 FIGURE_MARGIN_BOTTOM = 85
 FIGURE_MARGIN_TOP = 100
 PLOT_BACKGROUND_COLOR = "rgb(248,248,248)"
-
-
-def format_text_for_plot(text: str) -> str:
-    """
-    Formats text for plotting by splitting long lines into shorter ones.
-    """
-    lines = text.split("\n")
-    formatted_lines = []
-    for line in lines:
-        while len(line) > MAX_CHARS_PER_LINE:
-            formatted_lines.append(line[:MAX_CHARS_PER_LINE])
-            line = line[MAX_CHARS_PER_LINE:]
-        formatted_lines.append(line)
-
-    return "<br>".join(formatted_lines)
-
-
-def create_visualization_figure(
-        edge_x_coords, edge_y_coords, node_x_coords, node_y_coords, node_labels
-):
-    """
-    Creates a Plotly figure for visualizing nodes and edges.
-    """
-    fig = go.Figure()
-    lines_scatter = go.Scatter(
-        x=edge_x_coords, y=edge_y_coords, mode="lines",
-        line=dict(color=FIGURE_LINE_COLOR, width=FIGURE_LINE_WIDTH),
-        hoverinfo=FIGURE_HOVER_INFO
-    )
-    marker_dict = dict(
-        symbol=NODE_SHAPE,
-        size=NODE_SIZE,
-        color=NODE_COLOR,
-        line=dict(color=NODE_OUTLINE_COLOR, width=NODE_OUTLINE_THICKNESS),
-    )
-    markers_scatter = go.Scatter(
-        x=node_x_coords, y=node_y_coords, mode="markers", name="nodes", marker=marker_dict,
-        hoverinfo="text", opacity=FIGURE_OPACITY,
-        text=[format_text_for_plot(label) for label in node_labels],
-    )
-    fig.add_trace(lines_scatter)
-    fig.add_trace(markers_scatter)
-
-    return fig
 
 
 def build_graph_from_tree(
@@ -116,14 +74,15 @@ def find_node_in_tree(node_index: int, tree: Tree) -> Node:
     raise Exception(f"Node with index {node_index} not found")
 
 
-def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False):
+def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False, special_nodes: list[int] = None):
     """
     Visualizes the tree structure using iGraph and Plotly.
     """
     graph = Graph()
     build_graph_from_tree(graph, start_node, tree)
 
-    fig = _generate_plotly_coordinates(graph)
+    edge_coords, node_coords, node_labels = _generate_plotly_coordinates(graph)
+    fig = _create_visualization_figure(edge_coords, node_coords, node_labels, special_nodes, graph)
 
     fig.update_layout(
         title=FIGURE_TITLE,
@@ -150,7 +109,7 @@ def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False
     py.iplot(fig)
 
 
-def _generate_plotly_coordinates(input_graph: Graph) -> go.Figure:
+def _generate_plotly_coordinates(input_graph: Graph) -> Tuple[list, list, list]:
     layout = input_graph.layout("rt", root=[0])
     positions = {i: layout[i] for i in range(input_graph.vcount())}
     heights = [layout[i][1] for i in range(input_graph.vcount())]
@@ -173,6 +132,62 @@ def _generate_plotly_coordinates(input_graph: Graph) -> go.Figure:
         )
 
     node_labels = [vertex["name"] for vertex in input_graph.vs]
-    return create_visualization_figure(
-        edge_x_coords, edge_y_coords, node_x_coords, node_y_coords, node_labels
+    edge_coords = [edge_x_coords, edge_y_coords]
+    node_coords = [node_x_coords, node_y_coords]
+    return edge_coords, node_coords, node_labels
+
+
+def _create_visualization_figure(edge_coords, node_coords, node_labels, special_nodes, graph):
+    """
+    Creates a Plotly figure for visualizing nodes and edges.
+    """
+    edge_x_coords, edge_y_coords = edge_coords
+    node_x_coords, node_y_coords = node_coords
+    fig = go.Figure()
+    lines_scatter = go.Scatter(
+        x=edge_x_coords, y=edge_y_coords, mode="lines",
+        line=dict(color=FIGURE_LINE_COLOR, width=FIGURE_LINE_WIDTH),
+        hoverinfo=FIGURE_HOVER_INFO
     )
+
+    special_nodes_color = "red"
+
+    # Create a mapping of node positions to their indexes
+    node_index_mapping = {i: vertex['index'] for i, vertex in enumerate(graph.vs)}
+
+    # Check if the node index is in special_nodes
+    marker_colors = [
+        NODE_COLOR if node_index_mapping[i] not in special_nodes else special_nodes_color
+        for i in range(len(node_x_coords))
+    ] if special_nodes else [NODE_COLOR] * len(node_x_coords)
+
+    marker_dict = dict(
+        symbol=NODE_SHAPE,
+        size=NODE_SIZE,
+        color=marker_colors,
+        line=dict(color=NODE_OUTLINE_COLOR, width=NODE_OUTLINE_THICKNESS),
+    )
+    markers_scatter = go.Scatter(
+        x=node_x_coords, y=node_y_coords, mode="markers", name="nodes", marker=marker_dict,
+        hoverinfo="text", opacity=FIGURE_OPACITY,
+        text=[_format_text_for_plot(label) for label in node_labels],
+    )
+    fig.add_trace(lines_scatter)
+    fig.add_trace(markers_scatter)
+
+    return fig
+
+
+def _format_text_for_plot(text: str) -> str:
+    """
+    Formats text for plotting by splitting long lines into shorter ones.
+    """
+    lines = text.split("\n")
+    formatted_lines = []
+    for line in lines:
+        while len(line) > MAX_CHARS_PER_LINE:
+            formatted_lines.append(line[:MAX_CHARS_PER_LINE])
+            line = line[MAX_CHARS_PER_LINE:]
+        formatted_lines.append(line)
+
+    return "<br>".join(formatted_lines)
