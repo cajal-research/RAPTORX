@@ -29,7 +29,7 @@ def visualize_tree_graph(tree: Tree, jupyter: bool = False, special_nodes: List[
 def main():
     pkl_path = get_tree_pkl_path()
     tree = load_tree(pkl_path)
-    visualize_tree_graph(tree)
+    visualize_tree_graph(tree, special_nodes=[-1, 37, 9])
 
 
 if __name__ == '__main__':

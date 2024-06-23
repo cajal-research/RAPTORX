@@ -3,7 +3,7 @@
     See more : https://plotly.com/python/tree-plots/
     Usage : visualize_tree_structure(start_node : Node, tree : Tree)
 """
-from typing import Tuple
+from typing import Tuple, List
 
 from source.raptor.tree_structures import Node, Tree
 
@@ -39,9 +39,7 @@ FIGURE_MARGIN_TOP = 100
 PLOT_BACKGROUND_COLOR = "rgb(248,248,248)"
 
 
-def build_graph_from_tree(
-        graph: Graph, current_node: Node, tree: Tree, parent_node_id: int = -1
-) -> int:
+def build_graph_from_tree(graph: Graph, current_node: Node, tree: Tree, parent_node_id: int = -1) -> int:
     """
     Recursively builds a graph representation of the tree structure.
     """
@@ -81,8 +79,11 @@ def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False
     graph = Graph()
     build_graph_from_tree(graph, start_node, tree)
 
-    edge_coords, node_coords, node_labels = _generate_plotly_coordinates(graph)
-    fig = _create_visualization_figure(edge_coords, node_coords, node_labels, special_nodes, graph)
+    node_index_mapping = {i: vertex['index'] for i, vertex in enumerate(graph.vs)}
+    edge_coords, node_coords, node_labels, edge_indices, special_edge_indices = (
+        _generate_plotly_coordinates(graph, special_nodes, node_index_mapping))
+    fig = _create_visualization_figure(edge_coords, node_coords, node_labels, special_nodes, graph, edge_indices,
+                                       special_edge_indices)
 
     fig.update_layout(
         title=FIGURE_TITLE,
@@ -109,7 +110,8 @@ def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False
     py.iplot(fig)
 
 
-def _generate_plotly_coordinates(input_graph: Graph) -> Tuple[list, list, list]:
+def _generate_plotly_coordinates(input_graph: Graph, special_nodes: List[int], node_index_mapping: dict) -> Tuple[
+    list, list, list, list, list]:
     layout = input_graph.layout("rt", root=[0])
     positions = {i: layout[i] for i in range(input_graph.vcount())}
     heights = [layout[i][1] for i in range(input_graph.vcount())]
@@ -121,6 +123,9 @@ def _generate_plotly_coordinates(input_graph: Graph) -> Tuple[list, list, list]:
     node_y_coords = [2 * max_height - positions[i][1] for i in range(num_positions)]
     edge_x_coords = []
     edge_y_coords = []
+    edge_indices = []
+    special_edge_indices = []
+
     for edge in edge_tuples:
         edge_x_coords.extend([positions[edge[0]][0], positions[edge[1]][0], None])
         edge_y_coords.extend(
@@ -130,30 +135,49 @@ def _generate_plotly_coordinates(input_graph: Graph) -> Tuple[list, list, list]:
                 None,
             ]
         )
+        edge_indices.append(edge)
+        origin_node = node_index_mapping[edge[0]]
+        target_node = node_index_mapping[edge[1]]
+        if origin_node in special_nodes and target_node in special_nodes:
+            special_edge_indices.append(edge)
 
     node_labels = [vertex["name"] for vertex in input_graph.vs]
     edge_coords = [edge_x_coords, edge_y_coords]
     node_coords = [node_x_coords, node_y_coords]
-    return edge_coords, node_coords, node_labels
+    return edge_coords, node_coords, node_labels, edge_indices, special_edge_indices
 
 
-def _create_visualization_figure(edge_coords, node_coords, node_labels, special_nodes, graph):
+def _create_visualization_figure(edge_coords: List[List[float]], node_coords: List[List[float]], node_labels: List[str],
+                                 special_nodes: List[int], graph: Graph, edge_indices: List[Tuple[int, int]],
+                                 special_edge_indices: List[Tuple[int, int]]) -> go.Figure:
     """
     Creates a Plotly figure for visualizing nodes and edges.
     """
     edge_x_coords, edge_y_coords = edge_coords
     node_x_coords, node_y_coords = node_coords
     fig = go.Figure()
-    lines_scatter = go.Scatter(
-        x=edge_x_coords, y=edge_y_coords, mode="lines",
-        line=dict(color=FIGURE_LINE_COLOR, width=FIGURE_LINE_WIDTH),
-        hoverinfo=FIGURE_HOVER_INFO
-    )
 
-    special_nodes_color = "red"
+    special_edges_color = "red"
+    normal_edges_color = FIGURE_LINE_COLOR
 
     # Create a mapping of node positions to their indexes
     node_index_mapping = {i: vertex['index'] for i, vertex in enumerate(graph.vs)}
+
+    edge_colors = []
+    for edge in edge_indices:
+        if edge in special_edge_indices:
+            edge_colors.append(special_edges_color)
+        else:
+            edge_colors.append(normal_edges_color)
+
+    for i in range(len(edge_x_coords) // 3):
+        fig.add_trace(go.Scatter(
+            x=edge_x_coords[i * 3:i * 3 + 3], y=edge_y_coords[i * 3:i * 3 + 3], mode="lines",
+            line=dict(color=edge_colors[i], width=FIGURE_LINE_WIDTH),
+            hoverinfo=FIGURE_HOVER_INFO
+        ))
+
+    special_nodes_color = "red"
 
     # Check if the node index is in special_nodes
     marker_colors = [
@@ -172,7 +196,6 @@ def _create_visualization_figure(edge_coords, node_coords, node_labels, special_
         hoverinfo="text", opacity=FIGURE_OPACITY,
         text=[_format_text_for_plot(label) for label in node_labels],
     )
-    fig.add_trace(lines_scatter)
     fig.add_trace(markers_scatter)
 
     return fig
