@@ -22,7 +22,7 @@ def get_normalized_datasets_folder_path():
 
 
 def get_tree_pkl_path():
-    return Path(get_root_folder_path(), 'data/tree.pkl')
+    return Path(get_root_folder_path(), 'data/cinderella/tree.pkl')
 
 
 def get_syn_dataset_path():

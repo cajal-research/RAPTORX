@@ -1,7 +1,8 @@
 import pickle
+from pathlib import Path
 
-from source.models.tree_structures import Node
 from source.paths.path_reference import get_tree_pkl_path
+from source.raptor.tree_structures import Node, Tree
 from source.tree_visualization.visualize_core import visualize_tree_structure
 
 
@@ -12,11 +13,7 @@ def load_tree(path):
     return tree_object
 
 
-def visualize_tree_graph():
-    # Load the tree from the pickled file
-    file_path = get_tree_pkl_path()
-    tree = load_tree(file_path)
-
+def visualize_tree_graph(tree: Tree, jupyter: bool = False):
     # Now create a new root Node on top of all root nodes
     root_node = Node(
         text="Root Node",  # You can replace this with an appropriate text for the root node
@@ -25,11 +22,13 @@ def visualize_tree_graph():
         embeddings=[]
     )
 
-    visualize_tree_structure(root_node, tree)
+    visualize_tree_structure(root_node, tree, jupyter)
 
 
 def main():
-    visualize_tree_graph()
+    pkl_path = get_tree_pkl_path()
+    tree = load_tree(pkl_path)
+    visualize_tree_graph(tree)
 
 
 if __name__ == '__main__':

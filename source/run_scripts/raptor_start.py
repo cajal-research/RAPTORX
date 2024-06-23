@@ -5,7 +5,7 @@ from source.raptor.RetrievalAugmentation import RetrievalAugmentationConfig, Ret
 from source.utils.openai_utils import setup_openai_api_key
 
 
-def main():
+def generate_pkl_tree():
     setup_openai_api_key()
     config = RetrievalAugmentationConfig()
     retrieval_augmentation = RetrievalAugmentation(config=config)
@@ -22,4 +22,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    generate_pkl_tree()

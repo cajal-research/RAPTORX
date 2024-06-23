@@ -3,7 +3,7 @@
     See more : https://plotly.com/python/tree-plots/
     Usage : visualize_tree_structure(start_node : Node, tree : Tree)
 """
-from source.models.tree_structures import Node, Tree
+from source.raptor.tree_structures import Node, Tree
 
 try:
     import plotly.graph_objects as go
@@ -116,7 +116,7 @@ def find_node_in_tree(node_index: int, tree: Tree) -> Node:
     raise Exception(f"Node with index {node_index} not found")
 
 
-def visualize_tree_structure(start_node: Node, tree: Tree):
+def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False):
     """
     Visualizes the tree structure using iGraph and Plotly.
     """
@@ -166,4 +166,10 @@ def visualize_tree_structure(start_node: Node, tree: Tree):
         plot_bgcolor=PLOT_BACKGROUND_COLOR,
     )
 
-    fig.show()
+    if not jupyter:
+        fig.show()
+        return
+
+    import plotly.offline as py
+    py.init_notebook_mode(connected=True)
+    py.iplot(fig)
