@@ -49,7 +49,7 @@ def build_graph_from_tree(graph: Graph, current_node: Node, tree: Tree, parent_n
     """
     node_id = graph.vcount()
     graph.add_vertex(
-        name=f"Node Index: {current_node.index}, Node Text: {current_node.text}",
+        name=f"• [Node #{current_node.index}]\n{current_node.text}",
         index=current_node.index,
         embeddings=current_node.embeddings,
     )
