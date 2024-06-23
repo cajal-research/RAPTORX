@@ -164,6 +164,7 @@ def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False
         margin=dict(l=FIGURE_MARGIN_LEFT, r=FIGURE_MARGIN_RIGHT, b=FIGURE_MARGIN_BOTTOM, t=FIGURE_MARGIN_TOP),
         hovermode="closest",
         plot_bgcolor=PLOT_BACKGROUND_COLOR,
+        width=1500
     )
 
     if not jupyter:

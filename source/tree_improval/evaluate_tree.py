@@ -1,10 +1,8 @@
 import pandas as pd
 
-from raptor.tree_structures import Tree
-from retriever import retrieve
-from typing import List
 from tqdm import tqdm
 
+from source.raptor.tree_structures import Tree
 from source.tree_improval.utils import get_path_to_leaf, shuffle_and_prepare, get_correct_paths, \
     retrieve_path_and_embedding, create_result_entry
 
