@@ -123,13 +123,40 @@ def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False
     graph = Graph()
     build_graph_from_tree(graph, start_node, tree)
 
-    layout = graph.layout("rt", root=[0])
-    positions = {i: layout[i] for i in range(graph.vcount())}
-    heights = [layout[i][1] for i in range(graph.vcount())]
+    fig = _generate_plotly_coordinates(graph)
+
+    fig.update_layout(
+        title=FIGURE_TITLE,
+        font_size=FIGURE_FONT_SIZE,
+        showlegend=False,
+        xaxis=dict(
+            showline=False, zeroline=False, showgrid=False, showticklabels=False
+        ),
+        yaxis=dict(
+            showline=False, zeroline=False, showgrid=False, showticklabels=False
+        ),
+        margin=dict(l=FIGURE_MARGIN_LEFT, r=FIGURE_MARGIN_RIGHT, b=FIGURE_MARGIN_BOTTOM, t=FIGURE_MARGIN_TOP),
+        hovermode="closest",
+        plot_bgcolor=PLOT_BACKGROUND_COLOR,
+        width=1500 if jupyter else 1000,
+    )
+
+    if not jupyter:
+        fig.show()
+        return
+
+    import plotly.offline as py
+    py.init_notebook_mode(connected=True)
+    py.iplot(fig)
+
+
+def _generate_plotly_coordinates(input_graph: Graph) -> go.Figure:
+    layout = input_graph.layout("rt", root=[0])
+    positions = {i: layout[i] for i in range(input_graph.vcount())}
+    heights = [layout[i][1] for i in range(input_graph.vcount())]
     max_height = max(heights)
 
-    edges = EdgeSeq(graph)
-    edge_tuples = [edge.tuple for edge in graph.es]
+    edge_tuples = [edge.tuple for edge in input_graph.es]
     num_positions = len(positions)
     node_x_coords = [positions[i][0] for i in range(num_positions)]
     node_y_coords = [2 * max_height - positions[i][1] for i in range(num_positions)]
@@ -145,32 +172,7 @@ def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False
             ]
         )
 
-    node_labels = [vertex["name"] for vertex in graph.vs]
-
-    fig = create_visualization_figure(
+    node_labels = [vertex["name"] for vertex in input_graph.vs]
+    return create_visualization_figure(
         edge_x_coords, edge_y_coords, node_x_coords, node_y_coords, node_labels
     )
-
-    fig.update_layout(
-        title=FIGURE_TITLE,
-        font_size=FIGURE_FONT_SIZE,
-        showlegend=False,
-        xaxis=dict(
-            showline=False, zeroline=False, showgrid=False, showticklabels=False
-        ),
-        yaxis=dict(
-            showline=False, zeroline=False, showgrid=False, showticklabels=False
-        ),
-        margin=dict(l=FIGURE_MARGIN_LEFT, r=FIGURE_MARGIN_RIGHT, b=FIGURE_MARGIN_BOTTOM, t=FIGURE_MARGIN_TOP),
-        hovermode="closest",
-        plot_bgcolor=PLOT_BACKGROUND_COLOR,
-        width=1500
-    )
-
-    if not jupyter:
-        fig.show()
-        return
-
-    import plotly.offline as py
-    py.init_notebook_mode(connected=True)
-    py.iplot(fig)
