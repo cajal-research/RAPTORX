@@ -26,8 +26,12 @@ NODE_COLOR = "#6175c1"
 NODE_OUTLINE_COLOR = "#000000"
 NODE_OUTLINE_THICKNESS = 2
 
-FIGURE_LINE_COLOR = "rgb(210,210,210)"
-FIGURE_LINE_WIDTH = 2
+NORMAL_EDGE_COLOR = "rgb(210,210,210)"
+NORMAL_EDGE_WIDTH = 2
+
+SPECIAL_NODE_COLOR = "red"
+SPECIAL_EDGE_COLOR = "red"
+
 FIGURE_HOVER_INFO = "none"
 FIGURE_OPACITY = 0.8
 FIGURE_TITLE = "Tree Visualization"
@@ -110,8 +114,8 @@ def visualize_tree_structure(start_node: Node, tree: Tree, jupyter: bool = False
     py.iplot(fig)
 
 
-def _generate_plotly_coordinates(input_graph: Graph, special_nodes: List[int], node_index_mapping: dict) -> Tuple[
-    list, list, list, list, list]:
+def _generate_plotly_coordinates(input_graph: Graph, special_nodes: List[int], node_index_mapping: dict) -> \
+        Tuple[list, list, list, list, list]:
     layout = input_graph.layout("rt", root=[0])
     positions = {i: layout[i] for i in range(input_graph.vcount())}
     heights = [layout[i][1] for i in range(input_graph.vcount())]
@@ -157,33 +161,25 @@ def _create_visualization_figure(edge_coords: List[List[float]], node_coords: Li
     node_x_coords, node_y_coords = node_coords
     fig = go.Figure()
 
-    special_edges_color = "red"
-    normal_edges_color = FIGURE_LINE_COLOR
-
     # Create a mapping of node positions to their indexes
     node_index_mapping = {i: vertex['index'] for i, vertex in enumerate(graph.vs)}
 
     edge_colors = []
     for edge in edge_indices:
-        if edge in special_edge_indices:
-            edge_colors.append(special_edges_color)
-        else:
-            edge_colors.append(normal_edges_color)
+        edge_colors.append(SPECIAL_EDGE_COLOR if edge in special_edge_indices else NORMAL_EDGE_COLOR)
 
     for i in range(len(edge_x_coords) // 3):
         fig.add_trace(go.Scatter(
             x=edge_x_coords[i * 3:i * 3 + 3], y=edge_y_coords[i * 3:i * 3 + 3], mode="lines",
-            line=dict(color=edge_colors[i], width=FIGURE_LINE_WIDTH),
+            line=dict(color=edge_colors[i], width=NORMAL_EDGE_WIDTH),
             hoverinfo=FIGURE_HOVER_INFO
         ))
 
-    special_nodes_color = "red"
-
-    # Check if the node index is in special_nodes
-    marker_colors = [
-        NODE_COLOR if node_index_mapping[i] not in special_nodes else special_nodes_color
-        for i in range(len(node_x_coords))
-    ] if special_nodes else [NODE_COLOR] * len(node_x_coords)
+    if special_nodes:
+        marker_colors = [SPECIAL_NODE_COLOR if node_index_mapping[i] in special_nodes else NODE_COLOR
+                         for i in range(len(node_x_coords))]
+    else:
+        marker_colors = [NODE_COLOR] * len(node_x_coords)
 
     marker_dict = dict(
         symbol=NODE_SHAPE,
@@ -192,9 +188,11 @@ def _create_visualization_figure(edge_coords: List[List[float]], node_coords: Li
         line=dict(color=NODE_OUTLINE_COLOR, width=NODE_OUTLINE_THICKNESS),
     )
     markers_scatter = go.Scatter(
-        x=node_x_coords, y=node_y_coords, mode="markers", name="nodes", marker=marker_dict,
+        x=node_x_coords, y=node_y_coords, mode="markers+text", name="nodes", marker=marker_dict,
         hoverinfo="text", opacity=FIGURE_OPACITY,
-        text=[_format_text_for_plot(label) for label in node_labels],
+        text=[str(node_index_mapping[i]) for i in range(len(node_x_coords))],
+        hovertext=[_format_text_for_plot(label) for label in node_labels],
+        textposition="top center"
     )
     fig.add_trace(markers_scatter)
 
