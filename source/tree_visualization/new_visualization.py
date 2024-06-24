@@ -7,6 +7,10 @@ from source.paths.path_reference import get_tree_pkl_path
 from source.raptor.tree_structures import Tree, Node
 from source.tree_visualization.visualization_utils import create_root_node, format_text_for_plot
 
+NODE_SIZE = 70
+DEFAULT_NODE_COLOR = "#6175c1"
+HIGHLIGHTED_NODE_COLOR = "red"
+
 
 class NewTreeVisualizer:
     def __init__(self, tree: Tree):
@@ -52,7 +56,7 @@ class NewTreeVisualizer:
         # Create an igraph graph to use the Reingold-Tilford layout
         g = Graph(directed=True)
         for node_id, node_index in self.nodes:
-            g.add_vertex(name=f"Node #{node_index}<br>{format_text_for_plot(self.labels[node_id])}")
+            g.add_vertex(name=f"{format_text_for_plot(self.labels[node_id])}")
         for edge in self.edges:
             g.add_edge(edge[0], edge[1])
 
@@ -64,26 +68,16 @@ class NewTreeVisualizer:
         max_y_value = max(layout[i][1] for i in range(len(g.vs)))
         y_values = [max_y_value - layout[i][1] for i in range(len(g.vs))]  # Flip y-axis
 
-        colors = ["red" if node[1] in self.special_nodes else "blue" for node in self.nodes]
+        colors = [HIGHLIGHTED_NODE_COLOR if node[1] in self.special_nodes else DEFAULT_NODE_COLOR for node in self.nodes]
 
         marker_dict = dict(
             symbol="circle",
-            size=20,  # Increase node size
+            size=25,
             color=colors,
             line=dict(color="black", width=1),
         )
 
         fig = go.Figure()
-
-        fig.add_trace(go.Scatter(
-            x=x_values, y=y_values,
-            mode='markers+text',
-            marker=marker_dict,
-            text=[str(index) for _, index in self.nodes],
-            hoverinfo='text',
-            hovertext=[vertex["name"] for vertex in g.vs],
-            textposition="top center"
-        ))
 
         # Add edges
         for edge in g.es:
@@ -96,6 +90,16 @@ class NewTreeVisualizer:
                 mode='lines',
                 line=dict(width=1, color='gray')
             ))
+
+        fig.add_trace(go.Scatter(
+            x=x_values, y=y_values,
+            mode='markers+text',
+            marker=marker_dict,
+            text=[str(index) for _, index in self.nodes],
+            hoverinfo='text',
+            hovertext=[vertex["name"] for vertex in g.vs],
+            textposition="top center"
+        ))
 
         # Update layout
         fig.update_layout(
