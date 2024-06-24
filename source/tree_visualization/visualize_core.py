@@ -143,11 +143,7 @@ class TreeVisualizer:
     def plot_tree(self, jupyter: bool = False):
         self.build_graph_from_tree(self.start_node)
         paths = [[], [-1], [-1, 37], [-1, 37, 9]]
-        frames = []
-        for index, path in enumerate(paths):
-            frame = self.create_single_frame(index)
-            self.path_trail = path
-            frames.append(frame)
+        frames = self.generate_all_frames(paths)
         fig = frames[0]
 
         _add_sliders(fig, list(range(len(frames))))
@@ -159,6 +155,14 @@ class TreeVisualizer:
         import plotly.offline as py
         py.init_notebook_mode(connected=True)
         py.iplot(fig)
+
+    def generate_all_frames(self, paths):
+        frames = []
+        for index, path in enumerate(paths):
+            frame = self.create_single_frame(index)
+            self.path_trail = path
+            frames.append(frame)
+        return frames
 
     def _generate_plotly_coordinates(self, node_index_mapping: dict) -> Tuple[list, list, list, list, list]:
         layout = self.graph.layout("rt", root=[0])
