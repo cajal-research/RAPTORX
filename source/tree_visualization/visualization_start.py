@@ -2,7 +2,7 @@ import pickle
 from typing import List, Tuple
 
 import plotly.graph_objects as go
-from igraph import Graph
+from igraph import Graph, Layout
 from source.paths.path_reference import get_tree_pkl_path
 from source.raptor.tree_structures import Tree, Node
 from source.tree_visualization.visualization_utils import create_root_node, format_text_for_plot, add_sliders
@@ -15,6 +15,15 @@ DEFAULT_NODE_COLOR = "#6175c1"
 DEFAULT_EDGE_COLOR = "rgb(210,210,210)"
 HIGHLIGHTED_NODE_COLOR = "red"
 HIGHLIGHTED_EDGE_COLOR = "red"
+
+
+def layout_position_calculations(graph_object: Graph, layout_object: Layout):
+    x_values = [layout_object[i][0] for i in range(len(graph_object.vs))]
+    max_y_value = int(max(layout_object[i][1] for i in range(len(graph_object.vs))))
+    y_values = [max_y_value - layout_object[i][1] for i in range(len(graph_object.vs))]
+    y_axis_tick_vals = list(range(max_y_value + 1))
+    y_axis_tick_text = [f"Layer#{level}" for level in range(max_y_value + 1)]
+    return x_values, y_values, max_y_value, y_axis_tick_text, y_axis_tick_vals
 
 
 class TreeVisualizer:
@@ -69,35 +78,30 @@ class TreeVisualizer:
     def plot_tree(self, special_nodes: List[int]):
         self.add_node_to_graph(self.root_node)
 
-        sliders_ticks = list(range(len(special_nodes)))
-        add_sliders(self.fig, sliders_ticks)
-
         # Create an igraph graph to use the Reingold-Tilford layout
         g = self.create_igraph_object()
 
         # Get Reingold-Tilford layout
         layout = g.layout_reingold_tilford(root=[0])
 
-        # Calculate x and y values
-        x_values = [layout[i][0] for i in range(len(g.vs))]
-        max_y_value = max(layout[i][1] for i in range(len(g.vs)))
-        max_y_value_int = int(max_y_value)
-        y_values = [max_y_value - layout[i][1] for i in range(len(g.vs))]
-
+        x_values, y_values, max_y_value, y_axis_tick_text, y_axis_tick_vals = layout_position_calculations(g, layout)
         self.plot_edges(layout, max_y_value, g, special_nodes)
         self.plot_nodes(x_values, y_values, g, special_nodes)
+
+        sliders_ticks = list(range(len(special_nodes)))
+        add_sliders(self.fig, sliders_ticks)
 
         # Update layout
         self.fig.update_layout(
             showlegend=False,
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, tickvals=list(range(max_y_value_int + 1)),
-                       ticktext=[f"Layer#{level}" for level in range(max_y_value_int + 1)]),
+            yaxis=dict(showgrid=False, zeroline=False, tickvals=y_axis_tick_vals, ticktext=y_axis_tick_text),
             plot_bgcolor='white',
             autosize=False,
             width=CANVAS_WIDTH,
             height=CANVAS_HEIGHT,
             margin=dict(l=40, r=40, b=40, t=40),
+            updatemenus=[dict(type="buttons", buttons=[dict(label="Play", method="animate", args=[None])])]
         )
 
         self.fig.show()
@@ -129,6 +133,8 @@ class TreeVisualizer:
         all_edges = [(edge.source, edge.target) for edge in igraph_graph.es]
         special_edges = self.get_special_edges(all_edges, special_nodes)
 
+        edge_scatter_pot = []
+
         for edge in igraph_graph.es:
             x0, y0 = layout[edge.source]
             x1, y1 = layout[edge.target]
@@ -136,12 +142,12 @@ class TreeVisualizer:
             y1 = max_y_value - y1
 
             edge_color = HIGHLIGHTED_EDGE_COLOR if (edge.source, edge.target) in special_edges else DEFAULT_EDGE_COLOR
+            current_scatter = go.Scatter(x=[x0, x1, None], y=[y0, y1, None], mode='lines',
+                                         line=dict(width=1, color=edge_color))
+            edge_scatter_pot.append(current_scatter)
 
-            self.fig.add_trace(go.Scatter(
-                x=[x0, x1, None], y=[y0, y1, None],
-                mode='lines',
-                line=dict(width=1, color=edge_color)
-            ))
+        for scatter in edge_scatter_pot:
+            self.fig.add_trace(scatter)
 
     def get_special_edges(self, all_edges: List[Tuple[int, int]], special_nodes: List[int]):
         tree_object_edges = [(self.node_index_mapping[source], self.node_index_mapping[target])
