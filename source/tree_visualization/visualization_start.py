@@ -1,11 +1,11 @@
 import pickle
-from typing import List
+from typing import List, Tuple
 
 import plotly.graph_objects as go
 from igraph import Graph
 from source.paths.path_reference import get_tree_pkl_path
 from source.raptor.tree_structures import Tree, Node
-from source.tree_visualization.visualization_utils import create_root_node, format_text_for_plot
+from source.tree_visualization.visualization_utils import create_root_node, format_text_for_plot, add_sliders
 
 NODE_SIZE = 35
 CANVAS_WIDTH = 1500
@@ -17,7 +17,7 @@ HIGHLIGHTED_NODE_COLOR = "red"
 HIGHLIGHTED_EDGE_COLOR = "red"
 
 
-class NewTreeVisualizer:
+class TreeVisualizer:
     def __init__(self, tree: Tree):
         self.tree = tree
         self.root_node = create_root_node(tree)
@@ -33,7 +33,6 @@ class NewTreeVisualizer:
         """
         node_id = len(self.nodes)
         self.nodes.append((node_id, node.index))
-        # self.node_index_mapping[node.index] = node_id
         self.labels.append(f"Node #{node.index}<br>{format_text_for_plot(node.text)}")
 
         if parent_node_id is not None:
@@ -70,6 +69,9 @@ class NewTreeVisualizer:
     def plot_tree(self, special_nodes: List[int]):
         self.add_node_to_graph(self.root_node)
 
+        sliders_ticks = list(range(len(special_nodes)))
+        add_sliders(self.fig, sliders_ticks)
+
         # Create an igraph graph to use the Reingold-Tilford layout
         g = self.create_igraph_object()
 
@@ -79,6 +81,7 @@ class NewTreeVisualizer:
         # Calculate x and y values
         x_values = [layout[i][0] for i in range(len(g.vs))]
         max_y_value = max(layout[i][1] for i in range(len(g.vs)))
+        max_y_value_int = int(max_y_value)
         y_values = [max_y_value - layout[i][1] for i in range(len(g.vs))]
 
         self.plot_edges(layout, max_y_value, g, special_nodes)
@@ -87,8 +90,9 @@ class NewTreeVisualizer:
         # Update layout
         self.fig.update_layout(
             showlegend=False,
-            xaxis=dict(showgrid=False, zeroline=False),
-            yaxis=dict(showgrid=False, zeroline=False),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, tickvals=list(range(max_y_value_int + 1)),
+                       ticktext=[f"Layer#{level}" for level in range(max_y_value_int + 1)]),
             plot_bgcolor='white',
             autosize=False,
             width=CANVAS_WIDTH,
@@ -123,20 +127,15 @@ class NewTreeVisualizer:
 
     def plot_edges(self, layout: List[List[float]], max_y_value: float, igraph_graph: Graph, special_nodes: List[int]):
         all_edges = [(edge.source, edge.target) for edge in igraph_graph.es]
-        mapped_edges = [(self.node_index_mapping[source], self.node_index_mapping[target]) for source, target in
-                        all_edges]
-        special_edges = [(source, target) for source, target in mapped_edges
-                         if source in special_nodes and target in special_nodes]
-        reverse_map = {v: k for k, v in self.node_index_mapping.items()}
-        unmapped_edges = [(reverse_map[source], reverse_map[target]) for source, target in special_edges]
+        special_edges = self.get_special_edges(all_edges, special_nodes)
 
         for edge in igraph_graph.es:
             x0, y0 = layout[edge.source]
             x1, y1 = layout[edge.target]
-            y0 = max_y_value - y0  # Flip y-axis for edges
-            y1 = max_y_value - y1  # Flip y-axis for edges
+            y0 = max_y_value - y0
+            y1 = max_y_value - y1
 
-            edge_color = HIGHLIGHTED_EDGE_COLOR if (edge.source, edge.target) in unmapped_edges else DEFAULT_EDGE_COLOR
+            edge_color = HIGHLIGHTED_EDGE_COLOR if (edge.source, edge.target) in special_edges else DEFAULT_EDGE_COLOR
 
             self.fig.add_trace(go.Scatter(
                 x=[x0, x1, None], y=[y0, y1, None],
@@ -144,14 +143,26 @@ class NewTreeVisualizer:
                 line=dict(width=1, color=edge_color)
             ))
 
+    def get_special_edges(self, all_edges: List[Tuple[int, int]], special_nodes: List[int]):
+        tree_object_edges = [(self.node_index_mapping[source], self.node_index_mapping[target])
+                             for source, target in all_edges]
+        tree_object_special_edges = [(source, target) for source, target in tree_object_edges
+                                     if source in special_nodes and target in special_nodes]
+        tree_index_to_imap_index = {v: k for k, v in self.node_index_mapping.items()}
+        return [(tree_index_to_imap_index[source], tree_index_to_imap_index[target])
+                for source, target in tree_object_special_edges]
 
-def main():
+
+def load_cinderella_tree() -> Tree:
     pkl_path = get_tree_pkl_path()
     with open(pkl_path, "rb") as file:
-        tree_object = pickle.load(file)
+        return pickle.load(file)
 
+
+def main():
+    tree_object = load_cinderella_tree()
     trail = [-1, 37, 9]
-    new_tree_visualizer = NewTreeVisualizer(tree_object)
+    new_tree_visualizer = TreeVisualizer(tree_object)
     new_tree_visualizer.plot_tree(trail)
 
 
