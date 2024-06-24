@@ -1,10 +1,10 @@
 from typing import Tuple, List
 
-from plotly.graph_objs import Figure
-
 from source.raptor.tree_structures import Node, Tree
 import plotly.graph_objects as go
-from igraph import Graph, EdgeSeq
+from igraph import Graph
+
+from source.tree_visualization.visualization_utils import format_text_for_plot, add_sliders
 
 # Configuration Constants
 MAX_CHARS_PER_LINE = 80
@@ -30,57 +30,12 @@ WEB_WIDTH = 1700
 JUPYTER_WIDTH = 1500
 
 
-def _format_text_for_plot(text: str) -> str:
-    """
-    Formats text for plotting by splitting long lines into shorter ones.
-    """
-    lines = text.split("\n")
-    formatted_lines = []
-    for line in lines:
-        while len(line) > MAX_CHARS_PER_LINE:
-            formatted_lines.append(line[:MAX_CHARS_PER_LINE])
-            line = line[MAX_CHARS_PER_LINE:]
-        formatted_lines.append(line)
-
-    return "<br>".join(formatted_lines)
-
-
-def _add_sliders(fig: Figure, ticks: List):
-    sliders_dict = {
-        "active": 0,
-        "yanchor": "top",
-        "xanchor": "left",
-        "currentvalue": {
-            "font": {"size": 20},
-            "prefix": "Frame #",
-            "visible": True,
-            "xanchor": "right"
-        },
-        "transition": {"duration": 300, "easing": "cubic-in-out"},
-        "pad": {"b": 10, "t": 50},
-        "len": 0.9,
-        "x": 0.01,
-        "y": 0,
-        "steps": []
-    }
-    for i in ticks:
-        slider_step = {
-            "args": [
-                [f"frame{i}"],
-                {"frame": {"duration": 1000, "redraw": True}, "mode": "immediate", "transition": {"duration": 300}}
-            ],
-            "label": str(i),
-            "method": "animate"
-        }
-        sliders_dict["steps"].append(slider_step)
-    fig.update_layout(sliders=[sliders_dict])
-
-
 class TreeVisualizer:
-    def __init__(self, start_node: Node, tree: Tree, path_trail: List[int] = None):
+    def __init__(self, start_node: Node, tree: Tree, full_path_trail: List[int] = None):
         self.start_node = start_node
         self.tree = tree
-        self.path_trail = path_trail if path_trail else []
+        self.full_path_trail = full_path_trail if full_path_trail else []
+        self.path_so_far = full_path_trail
         self.graph = Graph()
         self.frames = []
         self.jupyter = False
@@ -116,7 +71,7 @@ class TreeVisualizer:
 
         raise Exception(f"Node with index {node_index} not found")
 
-    def create_single_frame(self, frame_index: int) -> go.Figure:
+    def create_single_frame(self, frame_index: int) -> go.Frame:
         node_index_mapping = {i: vertex['index'] for i, vertex in enumerate(self.graph.vs)}
         edge_coords, node_coords, node_labels, edge_indices, special_edge_indices = (
             self._generate_plotly_coordinates(node_index_mapping))
@@ -146,7 +101,7 @@ class TreeVisualizer:
         frames = self.generate_all_frames(paths)
         fig = frames[0]
 
-        _add_sliders(fig, list(range(len(frames))))
+        add_sliders(fig, list(range(len(frames))))
 
         if not jupyter:
             fig.show()
@@ -160,7 +115,6 @@ class TreeVisualizer:
         frames = []
         for index, path in enumerate(paths):
             frame = self.create_single_frame(index)
-            self.path_trail = path
             frames.append(frame)
         return frames
 
@@ -191,7 +145,7 @@ class TreeVisualizer:
             edge_indices.append(edge)
             origin_node = node_index_mapping[edge[0]]
             target_node = node_index_mapping[edge[1]]
-            if origin_node in self.path_trail and target_node in self.path_trail:
+            if origin_node in self.full_path_trail and target_node in self.full_path_trail:
                 special_edge_indices.append(edge)
 
         node_labels = [vertex["name"] for vertex in self.graph.vs]
@@ -223,8 +177,8 @@ class TreeVisualizer:
                 hoverinfo=FIGURE_HOVER_INFO
             ))
 
-        if self.path_trail:
-            marker_colors = [SPECIAL_NODE_COLOR if node_index_mapping[i] in self.path_trail else NODE_COLOR
+        if self.path_so_far:
+            marker_colors = [SPECIAL_NODE_COLOR if node_index_mapping[i] in self.path_so_far else NODE_COLOR
                              for i in range(len(node_x_coords))]
         else:
             marker_colors = [NODE_COLOR] * len(node_x_coords)
@@ -239,7 +193,7 @@ class TreeVisualizer:
             x=node_x_coords, y=node_y_coords, mode="markers+text", name="nodes", marker=marker_dict,
             hoverinfo="text", opacity=FIGURE_OPACITY,
             text=[str(node_index_mapping[i]) for i in range(len(node_x_coords))],
-            hovertext=[_format_text_for_plot(label) for label in node_labels],
+            hovertext=[format_text_for_plot(label) for label in node_labels],
             textposition="top center"
         )
         fig.add_trace(markers_scatter)
