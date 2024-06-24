@@ -24,7 +24,7 @@ def main():
         embeddings=[]
     )
     # visualize_tree_graph(tree, special_nodes=[-1, 37, 9])
-    visualizer = TreeVisualizer(root_node, tree, special_nodes=[-1, 37, 9])
+    visualizer = TreeVisualizer(root_node, tree, path_trail=[-1, 37, 9])
     visualizer.plot_tree(jupyter=False)
 
 

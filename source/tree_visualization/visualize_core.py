@@ -31,30 +31,43 @@ JUPYTER_WIDTH = 1500
 
 
 def _add_sliders(fig: Figure, ticks: List):
-    sliders_dict = {"active": 0, "yanchor": "top", "xanchor": "left",
-                    "currentvalue": {"font": {"size": 20},
-                                     "prefix": "Frame #",
-                                     "visible": True,
-                                     "xanchor": "right"},
-                    "transition": {"duration": 300, "easing": "cubic-in-out"}, "pad": {"b": 10, "t": 50},
-                    "len": 0.9,
-                    "x": 0.01, "y": 0, "steps": []
-                    }
-    for i, ttl in enumerate(ticks):
+    sliders_dict = {
+        "active": 0,
+        "yanchor": "top",
+        "xanchor": "left",
+        "currentvalue": {
+            "font": {"size": 20},
+            "prefix": "Frame #",
+            "visible": True,
+            "xanchor": "right"
+        },
+        "transition": {"duration": 300, "easing": "cubic-in-out"},
+        "pad": {"b": 10, "t": 50},
+        "len": 0.9,
+        "x": 0.01,
+        "y": 0,
+        "steps": []
+    }
+    for i in ticks:
         slider_step = {
-            "args": [[f"frame{i + 1}"], {"frame": {"duration": 1000, "redraw": True}, "mode": "immediate",
-                                         "transition": {"duration": 300}}], "label": str(ttl),
-            "method": "animate"}
+            "args": [
+                [f"frame{i}"],
+                {"frame": {"duration": 1000, "redraw": True}, "mode": "immediate", "transition": {"duration": 300}}
+            ],
+            "label": str(i),
+            "method": "animate"
+        }
         sliders_dict["steps"].append(slider_step)
     fig.update_layout(sliders=[sliders_dict])
 
 
 class TreeVisualizer:
-    def __init__(self, start_node: Node, tree: Tree, special_nodes: List[int] = None):
+    def __init__(self, start_node: Node, tree: Tree, path_trail: List[int] = None):
         self.start_node = start_node
         self.tree = tree
-        self.special_nodes = special_nodes if special_nodes else []
+        self.path_trail = path_trail if path_trail else []
         self.graph = Graph()
+        self.frames = []
 
     def build_graph_from_tree(self, current_node: Node, parent_node_id: int = -1) -> int:
         """
@@ -88,9 +101,6 @@ class TreeVisualizer:
         raise Exception(f"Node with index {node_index} not found")
 
     def plot_tree(self, jupyter: bool = False):
-        """
-        Visualizes the tree structure using iGraph and Plotly.
-        """
         self.build_graph_from_tree(self.start_node)
 
         node_index_mapping = {i: vertex['index'] for i, vertex in enumerate(self.graph.vs)}
@@ -115,7 +125,10 @@ class TreeVisualizer:
             width=JUPYTER_WIDTH if jupyter else WEB_WIDTH,
         )
 
-        _add_sliders(fig, self.special_nodes)
+        self._create_frames(fig, node_coords, node_labels, node_index_mapping)
+
+        fig.update(frames=self.frames)
+        _add_sliders(fig, list(range(len(self.frames))))
 
         if not jupyter:
             fig.show()
@@ -124,6 +137,40 @@ class TreeVisualizer:
         import plotly.offline as py
         py.init_notebook_mode(connected=True)
         py.iplot(fig)
+
+    def _create_frames(self, fig: Figure, node_coords: List[List[float]], node_labels: List[str],
+                       node_index_mapping: dict):
+        node_x_coords, node_y_coords = node_coords
+        total_nodes = len(node_x_coords)
+        num_frames = len(self.path_trail) + 1
+
+        for i in range(num_frames):
+            if i == 0:
+                marker_colors = [NODE_COLOR] * total_nodes
+            else:
+                current_path = self.path_trail[:i]
+                marker_colors = [
+                    SPECIAL_NODE_COLOR if node_index_mapping[j] in current_path else NODE_COLOR
+                    for j in range(total_nodes)
+                ]
+
+            marker_dict = dict(
+                symbol=NODE_SHAPE,
+                size=NODE_SIZE,
+                color=marker_colors,
+                line=dict(color=NODE_OUTLINE_COLOR, width=NODE_OUTLINE_THICKNESS),
+            )
+            frame = go.Frame(
+                data=[go.Scatter(
+                    x=node_x_coords, y=node_y_coords, mode="markers+text", name="nodes", marker=marker_dict,
+                    hoverinfo="text", opacity=FIGURE_OPACITY,
+                    text=[str(node_index_mapping[j]) for j in range(total_nodes)],
+                    hovertext=[self._format_text_for_plot(label) for label in node_labels],
+                    textposition="top center"
+                )],
+                name=f"frame{i}"
+            )
+            self.frames.append(frame)
 
     def _generate_plotly_coordinates(self, node_index_mapping: dict) -> Tuple[list, list, list, list, list]:
         layout = self.graph.layout("rt", root=[0])
@@ -152,7 +199,7 @@ class TreeVisualizer:
             edge_indices.append(edge)
             origin_node = node_index_mapping[edge[0]]
             target_node = node_index_mapping[edge[1]]
-            if origin_node in self.special_nodes and target_node in self.special_nodes:
+            if origin_node in self.path_trail and target_node in self.path_trail:
                 special_edge_indices.append(edge)
 
         node_labels = [vertex["name"] for vertex in self.graph.vs]
@@ -184,8 +231,8 @@ class TreeVisualizer:
                 hoverinfo=FIGURE_HOVER_INFO
             ))
 
-        if self.special_nodes:
-            marker_colors = [SPECIAL_NODE_COLOR if node_index_mapping[i] in self.special_nodes else NODE_COLOR
+        if self.path_trail:
+            marker_colors = [SPECIAL_NODE_COLOR if node_index_mapping[i] in self.path_trail else NODE_COLOR
                              for i in range(len(node_x_coords))]
         else:
             marker_colors = [NODE_COLOR] * len(node_x_coords)
