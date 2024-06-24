@@ -61,12 +61,11 @@ class NewTreeVisualizer:
         # Get Reingold-Tilford layout
         layout = g.layout_reingold_tilford(root=[0])
 
-        # Create plotly figure
-        fig = go.Figure()
-
-        # Add nodes
+        # Calculate x and y values
         x_values = [layout[i][0] for i in range(len(g.vs))]
-        y_values = [layout[i][1] for i in range(len(g.vs))]
+        max_y_value = max(layout[i][1] for i in range(len(g.vs)))
+        y_values = [max_y_value - layout[i][1] for i in range(len(g.vs))]  # Flip y-axis
+
         colors = ["red" if node[1] in self.special_nodes else "blue" for node in self.nodes]
 
         marker_dict = dict(
@@ -75,6 +74,8 @@ class NewTreeVisualizer:
             color=colors,
             line=dict(color="black", width=1),
         )
+
+        fig = go.Figure()
 
         fig.add_trace(go.Scatter(
             x=x_values, y=y_values,
@@ -90,6 +91,8 @@ class NewTreeVisualizer:
         for edge in g.es:
             x0, y0 = layout[edge.source]
             x1, y1 = layout[edge.target]
+            y0 = max_y_value - y0  # Flip y-axis for edges
+            y1 = max_y_value - y1  # Flip y-axis for edges
             fig.add_trace(go.Scatter(
                 x=[x0, x1, None], y=[y0, y1, None],
                 mode='lines',
