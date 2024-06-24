@@ -14,15 +14,7 @@ def load_tree(path):
     return tree_object
 
 
-# def visualize_tree_graph(tree: Tree, jupyter: bool = False, special_nodes: List[int] = None):
-#     # Now create a new root Node on top of all root nodes
-#
-#
-#     visualize_tree_structure(root_node, tree, jupyter, special_nodes)
-
-
 def main():
-
     pkl_path = get_tree_pkl_path()
     tree = load_tree(pkl_path)
     root_node = Node(

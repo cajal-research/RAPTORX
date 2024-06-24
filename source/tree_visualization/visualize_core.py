@@ -1,4 +1,7 @@
 from typing import Tuple, List
+
+from plotly.graph_objs import Figure
+
 from source.raptor.tree_structures import Node, Tree
 import plotly.graph_objects as go
 from igraph import Graph, EdgeSeq
@@ -23,6 +26,27 @@ FIGURE_MARGIN_RIGHT = 40
 FIGURE_MARGIN_BOTTOM = 85
 FIGURE_MARGIN_TOP = 100
 PLOT_BACKGROUND_COLOR = "rgb(248,248,248)"
+WEB_WIDTH = 1700
+JUPYTER_WIDTH = 1500
+
+
+def _add_sliders(fig: Figure, ticks: List):
+    sliders_dict = {"active": 0, "yanchor": "top", "xanchor": "left",
+                    "currentvalue": {"font": {"size": 20},
+                                     "prefix": "Frame #",
+                                     "visible": True,
+                                     "xanchor": "right"},
+                    "transition": {"duration": 300, "easing": "cubic-in-out"}, "pad": {"b": 10, "t": 50},
+                    "len": 0.9,
+                    "x": 0.01, "y": 0, "steps": []
+                    }
+    for i, ttl in enumerate(ticks):
+        slider_step = {
+            "args": [[f"frame{i + 1}"], {"frame": {"duration": 1000, "redraw": True}, "mode": "immediate",
+                                         "transition": {"duration": 300}}], "label": str(ttl),
+            "method": "animate"}
+        sliders_dict["steps"].append(slider_step)
+    fig.update_layout(sliders=[sliders_dict])
 
 
 class TreeVisualizer:
@@ -88,8 +112,10 @@ class TreeVisualizer:
             margin=dict(l=FIGURE_MARGIN_LEFT, r=FIGURE_MARGIN_RIGHT, b=FIGURE_MARGIN_BOTTOM, t=FIGURE_MARGIN_TOP),
             hovermode="closest",
             plot_bgcolor=PLOT_BACKGROUND_COLOR,
-            width=1500 if jupyter else 1000,
+            width=JUPYTER_WIDTH if jupyter else WEB_WIDTH,
         )
+
+        _add_sliders(fig, self.special_nodes)
 
         if not jupyter:
             fig.show()
