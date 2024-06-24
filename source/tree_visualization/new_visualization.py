@@ -1,6 +1,8 @@
 import pickle
 from typing import List
+
 import plotly.graph_objects as go
+from igraph import Graph
 from source.paths.path_reference import get_tree_pkl_path
 from source.raptor.tree_structures import Tree, Node
 from source.tree_visualization.visualization_utils import create_root_node, format_text_for_plot
@@ -49,17 +51,27 @@ class NewTreeVisualizer:
     def plot_tree(self):
         self.add_node_to_graph(self.root_node)
 
+        # Create an igraph graph to use the Reingold-Tilford layout
+        g = Graph(directed=True)
+        for node_id, node_index, _, _ in self.nodes:
+            g.add_vertex(name=f"Node #{node_index}<br>{format_text_for_plot(self.labels[node_id])}")
+        for edge in self.edges:
+            g.add_edge(edge[0], edge[1])
+
+        # Get Reingold-Tilford layout
+        layout = g.layout_reingold_tilford(root=[0])
+
         # Create plotly figure
         fig = go.Figure()
 
         # Add nodes
-        x_values = [x_offset for _, _, _, x_offset in self.nodes]
-        y_values = [-depth for _, _, depth, _ in self.nodes]  # Invert depth to have root at the top
-        colors = ["red" if index in self.special_nodes else "blue" for _, index, _, _ in self.nodes]
+        x_values = [layout[i][0] for i in range(len(g.vs))]
+        y_values = [layout[i][1] for i in range(len(g.vs))]
+        colors = ["red" if node[1] in self.special_nodes else "blue" for node in self.nodes]
 
         marker_dict = dict(
             symbol="circle",
-            size=10,
+            size=20,  # Increase node size
             color=colors,
             line=dict(color="black", width=1),
         )
@@ -70,14 +82,14 @@ class NewTreeVisualizer:
             marker=marker_dict,
             text=[str(index) for _, index, _, _ in self.nodes],
             hoverinfo='text',
-            hovertext=[format_text_for_plot(label) for label in self.labels],
+            hovertext=[vertex["name"] for vertex in g.vs],
             textposition="top center"
         ))
 
         # Add edges
-        for edge in self.edges:
-            x0, y0 = x_values[edge[0]], y_values[edge[0]]
-            x1, y1 = x_values[edge[1]], y_values[edge[1]]
+        for edge in g.es:
+            x0, y0 = layout[edge.source]
+            x1, y1 = layout[edge.target]
             fig.add_trace(go.Scatter(
                 x=[x0, x1, None], y=[y0, y1, None],
                 mode='lines',
@@ -89,7 +101,11 @@ class NewTreeVisualizer:
             showlegend=False,
             xaxis=dict(showgrid=False, zeroline=False),
             yaxis=dict(showgrid=False, zeroline=False),
-            plot_bgcolor='white'
+            plot_bgcolor='white',
+            autosize=False,
+            width=1200,
+            height=800,
+            margin=dict(l=40, r=40, b=40, t=40),
         )
 
         fig.show()
