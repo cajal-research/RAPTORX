@@ -17,22 +17,20 @@ class NewTreeVisualizer:
         self.labels = []
         self.special_nodes = []
 
-    def add_node_to_graph(self, node: Node, parent_node_id: int = None, depth: int = 0, x_offset: int = 0):
+    def add_node_to_graph(self, node: Node, parent_node_id: int = None):
         """
         Recursively adds nodes from the tree to the graph.
         """
         node_id = len(self.nodes)
-        self.nodes.append((node_id, node.index, depth, x_offset))
+        self.nodes.append((node_id, node.index))
         self.labels.append(f"Node #{node.index}<br>{format_text_for_plot(node.text)}")
 
         if parent_node_id is not None:
             self.edges.append((parent_node_id, node_id))
 
-        child_x_offset = x_offset
         for child_index in node.children:
             child_node = self.get_node_by_index(child_index)
-            self.add_node_to_graph(child_node, node_id, depth + 1, child_x_offset)
-            child_x_offset += 1
+            self.add_node_to_graph(child_node, node_id)
 
         return node_id
 
@@ -53,7 +51,7 @@ class NewTreeVisualizer:
 
         # Create an igraph graph to use the Reingold-Tilford layout
         g = Graph(directed=True)
-        for node_id, node_index, _, _ in self.nodes:
+        for node_id, node_index in self.nodes:
             g.add_vertex(name=f"Node #{node_index}<br>{format_text_for_plot(self.labels[node_id])}")
         for edge in self.edges:
             g.add_edge(edge[0], edge[1])
@@ -81,7 +79,7 @@ class NewTreeVisualizer:
             x=x_values, y=y_values,
             mode='markers+text',
             marker=marker_dict,
-            text=[str(index) for _, index, _, _ in self.nodes],
+            text=[str(index) for _, index in self.nodes],
             hoverinfo='text',
             hovertext=[vertex["name"] for vertex in g.vs],
             textposition="top center"
