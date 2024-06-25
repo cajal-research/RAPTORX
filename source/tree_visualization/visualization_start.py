@@ -79,7 +79,7 @@ class TreeVisualizer:
         y_axis_tick_text = [f"Layer#{level}" for level in range(self.max_y_value + 1)]
         return y_axis_tick_text, y_axis_tick_vals
 
-    def plot_tree(self, special_nodes: List[int]):
+    def plot_pipeline(self, special_nodes: List[int]):
         self.add_node_to_graph(self.root_node)
 
         # Create an igraph graph to use the Reingold-Tilford layout
@@ -89,8 +89,7 @@ class TreeVisualizer:
         self.layout = self.graph.layout_reingold_tilford(root=[0])
 
         y_axis_tick_text, y_axis_tick_vals = self.layout_position_calculations(self.graph)
-        self.plot_edges(special_nodes)
-        self.plot_nodes(special_nodes)
+        self.plot_tree(special_nodes)
 
         sliders_ticks = list(range(len(special_nodes)))
         add_sliders(self.fig, sliders_ticks)
@@ -110,7 +109,14 @@ class TreeVisualizer:
 
         self.fig.show()
 
-    def plot_nodes(self, special_nodes: List[int]):
+    def plot_tree(self, special_nodes):
+        edge_scatter = self.get_edge_scatter(special_nodes)
+        node_scatter = self.get_node_scatter(special_nodes)
+        for scatter in edge_scatter:
+            self.fig.add_trace(scatter)
+        self.fig.add_trace(node_scatter)
+
+    def get_node_scatter(self, special_nodes: List[int]):
         colors = [HIGHLIGHTED_NODE_COLOR if node[1] in special_nodes else DEFAULT_NODE_COLOR for node in
                   self.nodes]
 
@@ -131,9 +137,9 @@ class TreeVisualizer:
             textposition="top center"
         )
 
-        self.fig.add_trace(node_scatter)
+        return node_scatter
 
-    def plot_edges(self, special_nodes: List[int]):
+    def get_edge_scatter(self, special_nodes: List[int]):
         all_edges = [(edge.source, edge.target) for edge in self.graph.es]
         special_edges = self.get_special_edges(all_edges, special_nodes)
 
@@ -150,8 +156,7 @@ class TreeVisualizer:
                                          line=dict(width=1, color=edge_color))
             edge_scatter_pot.append(current_scatter)
 
-        for scatter in edge_scatter_pot:
-            self.fig.add_trace(scatter)
+        return edge_scatter_pot
 
     def get_special_edges(self, all_edges: List[Tuple[int, int]], special_nodes: List[int]):
         tree_object_edges = [(self.node_index_mapping[source], self.node_index_mapping[target])
@@ -173,7 +178,7 @@ def main():
     tree_object = load_cinderella_tree()
     trail = [-1, 37, 9]
     new_tree_visualizer = TreeVisualizer(tree_object)
-    new_tree_visualizer.plot_tree(trail)
+    new_tree_visualizer.plot_pipeline(trail)
 
 
 if __name__ == '__main__':
