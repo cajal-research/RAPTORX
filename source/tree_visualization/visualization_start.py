@@ -110,11 +110,19 @@ class TreeVisualizer:
         self.fig.show()
 
     def plot_tree(self, special_nodes):
-        edge_scatter = self.get_edge_scatter(special_nodes)
-        node_scatter = self.get_node_scatter(special_nodes)
-        for scatter in edge_scatter:
-            self.fig.add_trace(scatter)
-        self.fig.add_trace(node_scatter)
+        frames = []
+        for i in range(len(special_nodes)):
+            current_special_nodes = special_nodes[:i + 1]
+            edge_scatter = self.get_edge_scatter(current_special_nodes)
+            node_scatter = self.get_node_scatter(current_special_nodes)
+            frame_data = edge_scatter + [node_scatter]
+            frame = go.Frame(data=frame_data, name=str(i))
+            frames.append(frame)
+
+        self.fig.frames = frames
+
+        # Add the initial frame
+        self.fig.add_traces(frames[0].data)
 
     def get_node_scatter(self, special_nodes: List[int]):
         colors = [HIGHLIGHTED_NODE_COLOR if node[1] in special_nodes else DEFAULT_NODE_COLOR for node in

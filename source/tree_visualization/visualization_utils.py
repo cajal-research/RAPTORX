@@ -44,7 +44,7 @@ def add_sliders(fig: Figure, ticks: List):
     for i in ticks:
         slider_step = {
             "args": [
-                [f"frame{i}"],
+                [str(i)],  # Ensure this matches the frame names
                 {"frame": {"duration": 1000, "redraw": True}, "mode": "immediate", "transition": {"duration": 300}}
             ],
             "label": str(i),
@@ -52,6 +52,7 @@ def add_sliders(fig: Figure, ticks: List):
         }
         sliders_dict["steps"].append(slider_step)
     fig.update_layout(sliders=[sliders_dict])
+
 
 
 def create_root_node(tree: Tree) -> Node:
