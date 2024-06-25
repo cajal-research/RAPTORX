@@ -54,7 +54,6 @@ def add_sliders(fig: Figure, ticks: List):
     fig.update_layout(sliders=[sliders_dict])
 
 
-
 def create_root_node(tree: Tree) -> Node:
     return Node(
         text="Root Node",
@@ -62,3 +61,26 @@ def create_root_node(tree: Tree) -> Node:
         children=list(map(lambda x: x.index, tree.root_nodes.values())),
         embeddings=[]
     )
+
+
+def compare_trails(actual_trail, expected_trail):
+    common_path = []
+    correct_decision = []
+    wrong_decision = []
+
+    # Find the length of the shortest trail
+    min_length = min(len(actual_trail), len(expected_trail))
+
+    # Identify the common path
+    i = 0
+    while i < min_length and actual_trail[i] == expected_trail[i]:
+        common_path.append(actual_trail[i])
+        i += 1
+
+    # Identify correct and wrong decisions
+    if i < len(expected_trail):
+        correct_decision = expected_trail[i:]
+    if i < len(actual_trail):
+        wrong_decision = actual_trail[i:]
+
+    return common_path, correct_decision, wrong_decision
