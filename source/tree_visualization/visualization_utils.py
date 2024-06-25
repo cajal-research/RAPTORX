@@ -1,5 +1,6 @@
 from typing import List
 
+from igraph import Graph, Layout
 from plotly.graph_objs import Figure
 
 from source.raptor.tree_structures import Node, Tree

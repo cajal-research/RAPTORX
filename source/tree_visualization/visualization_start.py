@@ -17,15 +17,6 @@ HIGHLIGHTED_NODE_COLOR = "red"
 HIGHLIGHTED_EDGE_COLOR = "red"
 
 
-def layout_position_calculations(graph_object: Graph, layout_object: Layout):
-    x_values = [layout_object[i][0] for i in range(len(graph_object.vs))]
-    max_y_value = int(max(layout_object[i][1] for i in range(len(graph_object.vs))))
-    y_values = [max_y_value - layout_object[i][1] for i in range(len(graph_object.vs))]
-    y_axis_tick_vals = list(range(max_y_value + 1))
-    y_axis_tick_text = [f"Layer#{level}" for level in range(max_y_value + 1)]
-    return x_values, y_values, max_y_value, y_axis_tick_text, y_axis_tick_vals
-
-
 class TreeVisualizer:
     def __init__(self, tree: Tree):
         self.tree = tree
@@ -35,6 +26,11 @@ class TreeVisualizer:
         self.labels = []
         self.fig = go.Figure()
         self.node_index_mapping = {}
+        self.graph = Graph()
+        self.layout = Layout()
+        self.x_values = []
+        self.y_values = []
+        self.max_y_value = 0
 
     def add_node_to_graph(self, node: Node, parent_node_id: int = None):
         """
@@ -62,7 +58,7 @@ class TreeVisualizer:
         except StopIteration:
             raise KeyError(f"Node with index {node_index} not found")
 
-    def create_igraph_object(self):
+    def create_igraph_object(self) -> Graph:
         g = Graph(directed=True)
 
         for node_id, node_index in self.nodes:
@@ -75,18 +71,26 @@ class TreeVisualizer:
             g.add_edge(target, source)
         return g
 
+    def layout_position_calculations(self, graph_object: Graph):
+        self.x_values = [self.layout[i][0] for i in range(len(graph_object.vs))]
+        self.max_y_value = int(max(self.layout[i][1] for i in range(len(graph_object.vs))))
+        self.y_values = [self.max_y_value - self.layout[i][1] for i in range(len(graph_object.vs))]
+        y_axis_tick_vals = list(range(self.max_y_value + 1))
+        y_axis_tick_text = [f"Layer#{level}" for level in range(self.max_y_value + 1)]
+        return y_axis_tick_text, y_axis_tick_vals
+
     def plot_tree(self, special_nodes: List[int]):
         self.add_node_to_graph(self.root_node)
 
         # Create an igraph graph to use the Reingold-Tilford layout
-        g = self.create_igraph_object()
+        self.graph = self.create_igraph_object()
 
         # Get Reingold-Tilford layout
-        layout = g.layout_reingold_tilford(root=[0])
+        self.layout = self.graph.layout_reingold_tilford(root=[0])
 
-        x_values, y_values, max_y_value, y_axis_tick_text, y_axis_tick_vals = layout_position_calculations(g, layout)
-        self.plot_edges(layout, max_y_value, g, special_nodes)
-        self.plot_nodes(x_values, y_values, g, special_nodes)
+        y_axis_tick_text, y_axis_tick_vals = self.layout_position_calculations(self.graph)
+        self.plot_edges(special_nodes)
+        self.plot_nodes(special_nodes)
 
         sliders_ticks = list(range(len(special_nodes)))
         add_sliders(self.fig, sliders_ticks)
@@ -106,7 +110,7 @@ class TreeVisualizer:
 
         self.fig.show()
 
-    def plot_nodes(self, x_values: List[float], y_values: List[float], igraph_graph: Graph, special_nodes: List[int]):
+    def plot_nodes(self, special_nodes: List[int]):
         colors = [HIGHLIGHTED_NODE_COLOR if node[1] in special_nodes else DEFAULT_NODE_COLOR for node in
                   self.nodes]
 
@@ -118,28 +122,28 @@ class TreeVisualizer:
         )
 
         node_scatter = go.Scatter(
-            x=x_values, y=y_values,
+            x=self.x_values, y=self.y_values,
             mode='markers+text',
             marker=marker_dict,
             text=[str(index) for _, index in self.nodes],
             hoverinfo='text',
-            hovertext=[vertex["name"] for vertex in igraph_graph.vs],
+            hovertext=[vertex["name"] for vertex in self.graph.vs],
             textposition="top center"
         )
 
         self.fig.add_trace(node_scatter)
 
-    def plot_edges(self, layout: List[List[float]], max_y_value: float, igraph_graph: Graph, special_nodes: List[int]):
-        all_edges = [(edge.source, edge.target) for edge in igraph_graph.es]
+    def plot_edges(self, special_nodes: List[int]):
+        all_edges = [(edge.source, edge.target) for edge in self.graph.es]
         special_edges = self.get_special_edges(all_edges, special_nodes)
 
         edge_scatter_pot = []
 
-        for edge in igraph_graph.es:
-            x0, y0 = layout[edge.source]
-            x1, y1 = layout[edge.target]
-            y0 = max_y_value - y0
-            y1 = max_y_value - y1
+        for edge in self.graph.es:
+            x0, y0 = self.layout[edge.source]
+            x1, y1 = self.layout[edge.target]
+            y0 = self.max_y_value - y0
+            y1 = self.max_y_value - y1
 
             edge_color = HIGHLIGHTED_EDGE_COLOR if (edge.source, edge.target) in special_edges else DEFAULT_EDGE_COLOR
             current_scatter = go.Scatter(x=[x0, x1, None], y=[y0, y1, None], mode='lines',
